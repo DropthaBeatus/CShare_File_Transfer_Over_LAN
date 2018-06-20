@@ -11,14 +11,16 @@ using System.Net.NetworkInformation;
 using System.Drawing.Printing;
 using System.Windows.Forms;
 
-namespace PushingforImaging{
+//https://stackoverflow.com/questions/5422140/windows-security-login-form
+
+namespace PushingforImaging
+{
     /* I left some global variables to let you edit some things in the software
      * ONLY EDIT THE ONES THAT CONTAIN INFORMATION (Already establish) NOT THE ONES THAT ARE NULL
      ALSO ALL CAPS = IMPORTANT INFO*/
     class Program
     {
         //DO NOT EDIT THESE BELOW UNLESS YOU KNOW WHAT YOU ARE DOING
-
         public static string cmpnm;
         //contains all the paths for the folders. The programs creates all the folders first then AFTER EVERY FOLDER IS CREATED the program will insert the files
         public static List<string> folderpavements = new List<string>();
@@ -33,23 +35,23 @@ namespace PushingforImaging{
          * */
         public static FilePaths Users;
         //This variable is the pathing to create the main file DO NOT EDIT IT;
-       // public static string depotPath = @"C:\Users\liam.flaherty\";
+        // public static string depotPath = @"C:\Users\liam.flaherty\";
         public static string firstpath;
-        public static BasePath DepotPath = new BasePath(@"c:\");
+        public static BasePath DepotPath = new BasePath(@"c:\Data\");
 
         //YOU CAN EDIT THESE VARIABLES HERE BELOW
 
         //This variable determines who is an active user last activity time by months. You can edit here. 
         public static int USERKILLTIME = -3;
         //These two ints are used to filter out old files ModKillTime is used for the last time the file was modified and the CreatedKill is for when the file was created
-        public static int ModKillTime = -2;
-        public static int CreatedKill = -4;
+        public static int ModKillTime = -1;
+        public static int CreatedKill = -2;
         //This two numbers below are the maxsize in bytes of a file/folder that will ask the user if they want to transfer a file that big
         public static float MAXfolderSIZE = 100000000;
         public static float MAXfileSIZE = 10000000;
         //This array is a filter for extensions Most of these extensions are for hazardous files or shortcuts
         //If you want to add more extensions just change the default number at new string[default number] to how many extnsions there are and put your filter as "filterName", in the array below
-        public static string[] securityArr = new string[16] { ".sample", ".resx", ".ide", ".cache", "lref", ".baml", ".config", ".cs", ".csproj", ".ami", ".ini", ".url",".htm", ".exe", ".dll",".maf" };
+        public static string[] securityArr = new string[16] { ".sample", ".resx", ".ide", ".cache", "lref", ".baml", ".config", ".ami", ".ini", ".url", ".htm", ".exe", ".dll", ".maf", ".exe'".Replace("'", "\""), ".EXE'".Replace("'", "\"") };
 
         public static ComboBox comboInstalledPrinters = new ComboBox();
         public static PrintDocument printDoc = new PrintDocument();
@@ -60,10 +62,12 @@ namespace PushingforImaging{
             while (i == true)
             {
                 Menu();
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
                 Console.WriteLine("Transfer files for more users? Hit 1 to continue:");
                 string k = Console.ReadLine();
                 if (k != "1")
                     i = false;
+                Console.ResetColor();
             }
             //fix a way to prevent console closing and what not instead of sleep it
             Thread.Sleep(50000);
@@ -71,16 +75,16 @@ namespace PushingforImaging{
 
         public static void Menu()
         {
+            bool TransferfromData = false;
             Console.WriteLine("Enter name of the computer");
             cmpnm = @"\\" + Console.ReadLine() + @"\c$";
-            while(Login(cmpnm) == false)
+            while (Login(cmpnm) == false)
             {
                 Console.WriteLine("Enter name of the computer");
                 cmpnm = @"\\" + Console.ReadLine() + @"\c$";
             }
             //firstpath is just \\ComputerName\c$\Users 
             firstpath = GetUsernames(cmpnm + @"\Users");
-            Console.WriteLine(firstpath);
             username = Path.GetFileName(firstpath);
             Users = new FilePaths(username, firstpath, DepotPath.depotPath);
             while (Login(firstpath) == false)
@@ -92,6 +96,19 @@ namespace PushingforImaging{
             }
             CreateDir();
             CheckChrome();
+            if (IsDirectoryEmpty(cmpnm + @"\Data") != true)
+            {
+                Console.WriteLine(@"\Data folders Contains files. Transfer files and folders? Hit 1 for yes");
+                if (Console.ReadLine() == "1")
+                {
+                    TransferfromData = true;
+                }
+                if (TransferfromData == true)
+                {
+                    TransferDataDocuments();
+                }
+            }
+
             //will need a way to have user break this and list all bad file paths and what not 
             try
             {
@@ -119,7 +136,6 @@ namespace PushingforImaging{
                 }
             }
             catch (NullReferenceException) { }
-
         }
 
         //need to use this to prevent files from being transfered might need to store an array or list and do an  S.contains() field 
@@ -142,7 +158,7 @@ namespace PushingforImaging{
                 string temp = System.IO.Path.GetFileName(test);
                 Console.ForegroundColor = ConsoleColor.Green;
                 b = b / 1000;
-                if(b > 1000)
+                if (b > 1000)
                 {
                     b = b / 1000;
                     Console.WriteLine("FILE size{0} at maximum is: {1} Mb would you like to transfer it?\nHIT 1 TO CANCEL TRANSFER", temp, b);
@@ -179,7 +195,7 @@ namespace PushingforImaging{
             {
                 return false;
             }
-            foreach( string s in Directory.GetFiles(test,"*", SearchOption.AllDirectories))
+            foreach (string s in Directory.GetFiles(test, "*", SearchOption.AllDirectories))
             {
                 if (FileFilter(s) == true)
                 {
@@ -191,7 +207,7 @@ namespace PushingforImaging{
             }
             if (FolderSize > MAXfolderSIZE)
             {
-              
+
                 string temp = System.IO.Path.GetFileName(test);
                 Console.ForegroundColor = ConsoleColor.Blue;
                 FolderSize = FolderSize / 1000;
@@ -201,7 +217,7 @@ namespace PushingforImaging{
                     Console.WriteLine("FOLDER size{0} at maximum is: {1} Mb would you like to transfer it?\nHIT 1 TO CANCEL TRANSFER", temp, FolderSize);
                 }
                 else
-                Console.WriteLine("FOLDER {0} size is {1} kB would you like to transfer it?\nHIT 1 TO CANCEL TRANSFER", temp, FolderSize);
+                    Console.WriteLine("FOLDER {0} size is {1} kB would you like to transfer it?\nHIT 1 TO CANCEL TRANSFER", temp, FolderSize);
                 Console.ResetColor();
                 check = Console.ReadLine();
                 if (check == "1")
@@ -228,8 +244,8 @@ namespace PushingforImaging{
                 Console.WriteLine(excpt.Message);
                 return false;
             }
-                Console.ResetColor();
-                return true;
+            Console.ResetColor();
+            return true;
         }
 
         //This program creates the main directory from depotpath and the 
@@ -248,12 +264,11 @@ namespace PushingforImaging{
 
             //If you understand the pathing here you can switch it out for whatever like to anypart of your C:\, \\depot\Data\Users\+username, or ITVault 
             //just make sure to add another path like \username+Timestamp the create the directory to store the files in
-            
+
             //creates the directory to store all the files in
 
             System.IO.Directory.CreateDirectory(Users.depotPath);
             Users.depotPath = Users.depotPath + username + " " + Timestamp;//@"\\depot\Data\Users\" + username;
-
 
             string x = Users.depotPath + @"\Favorites-" + Timestamp;
             string y = Users.depotPath + @"\Desktop-" + Timestamp;
@@ -261,46 +276,42 @@ namespace PushingforImaging{
 
             try
             {
-                if (Directory.GetFiles(xx).Length != 0)
+                if (IsDirectoryEmpty(xx) != true)
                 {
                     System.IO.Directory.CreateDirectory(x);
-                    Console.WriteLine("Creating Folder:" + x);
                     TestingFolderCopy2(xx, x);
                     folderpavements.Clear();
                     files.Clear();
                 }
-                if (Directory.GetFiles(yy).Length != 0)
+                if (IsDirectoryEmpty(yy) != true)
                 {
                     System.IO.Directory.CreateDirectory(y);
-                    Console.WriteLine("Creating Folder:" + y);
                     TestingFolderCopy2(yy, y);
                     folderpavements.Clear();
                     files.Clear();
                 }
-                if (Directory.GetFiles(zz).Length != 0)
+                if (IsDirectoryEmpty(zz) != true)
                 {
                     System.IO.Directory.CreateDirectory(z);
-                    Console.WriteLine("Creating Folder:" + z);
                     TestingFolderCopy2(zz, z);
                     folderpavements.Clear();
                     files.Clear();
-
                 }
                 GetPrinterNames(Users.depotPath);
             }
-             
+
             catch (UnauthorizedAccessException)
             {
                 Console.WriteLine("Your Access was denied");
                 Menu();
             }
-            
+
         }
 
         public static void TestingFolderCopy2(string SourcePath, string DestinationPath)
         {
 
-             files = DirSearch(SourcePath);
+            files = DirSearch(SourcePath);
             foreach (string s in folderpavements)
             {
                 Console.WriteLine(s);
@@ -322,14 +333,14 @@ namespace PushingforImaging{
             foreach (string s in files)
             {
                 try
-                {    
-                        FileAttributes attrib = File.GetAttributes(s);
-                        if ((attrib & FileAttributes.Directory) != FileAttributes.Directory)
-                        {
-                            Console.WriteLine("Copying File" + s);
-                            Login(SourcePath);
-                            FileCompress(s, SourcePath, DestinationPath);
-                        }
+                {
+                    FileAttributes attrib = File.GetAttributes(s);
+                    if ((attrib & FileAttributes.Directory) != FileAttributes.Directory)
+                    {
+                        Console.WriteLine("Copying File" + s);
+                        Login(SourcePath);
+                        FileCompress(s, SourcePath, DestinationPath);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -368,24 +379,21 @@ namespace PushingforImaging{
                     if ((attrib & FileAttributes.Directory) == FileAttributes.Directory)
                     {
                         folderpavements.Add(d);
-                        Console.WriteLine("Directory added :" + d);
                     }
                     //might need to switch this to the above part here
-                    Console.WriteLine("In Directory path");
                     if (FileFilter(f) == true && GetFileSize(f) == true)
                     {
-                        if(TimePurge(f) == true && !f.Contains(@"\AppData\Local\Google\Chrome\User Data\Default"))
-                        Console.WriteLine("Passed filter");
-                        files.Add(f);
+                        if (TimePurge(f) == true && !f.Contains(@"\AppData\Local\Google\Chrome\User Data\Default"))
+                            files.Add(f);
                     }
                 }
                 foreach (string d in Directory.GetDirectories(sDir))
                 {
                     if (GetFolderSize(d) == true)
                     {
-                         DirSearch(d);
+                        DirSearch(d);
                     }
-                }       
+                }
             }
             catch (System.Exception excpt)
             {
@@ -405,14 +413,14 @@ namespace PushingforImaging{
             DateTime purgeTime = DateTime.Now;
             purgeTime = purgeTime.AddYears(CreatedKill);
             DateTime ModKill = DateTime.Now.AddYears(ModKillTime);
-            int b = DateTime.Compare(purgeTime, fileTime);
-            if (DateTime.Compare(purgeTime, fileTime) < 0 &&  DateTime.Compare(ModKill, fileModTime)< 0)
+            if (DateTime.Compare(purgeTime, fileTime) > 0 && DateTime.Compare(ModKill, fileModTime) > 0)
             {
                 return false;
             }
             else
                 return true;
         }
+        // if (DateTime.Compare(DateTime.Now.AddMonths(USERKILLTIME), temp)<= 0 )
 
 
         //This is probably the most unorganized part of the code
@@ -439,14 +447,15 @@ namespace PushingforImaging{
                 count = 3;
             }
             //compressing an already compressed file causes an error
-            if (!fileP.Contains(".gz")){
+            if (!fileP.Contains(".gz"))
+            {
                 string zipPath;
                 //This part here is well... confusing to explain but it takes a huge chunk of the source path out including the file name
                 //E.g. \\CmpName\User\username\Documents\folder1\folder2\Textfile.txt ---> \folder1\folder2\ then addes this the premade directory as PremadeDirectoryPath\Documents-Timestamp\folder1\folder2\ then inserts the text file in this location
                 //This is so the files get put in the same structure (directories) as the source files were organized
                 FileInfo dir = new FileInfo(fileP);
                 zipPath = Compress(dir);
-                if(zipPath == "")
+                if (zipPath == "")
                 {
                     return;
                 }
@@ -477,8 +486,8 @@ namespace PushingforImaging{
         //Decompress the transfered file and then deletes both compressed files
         public static void Decompress(FileInfo file)
         {
-           
-            using(FileStream inFile = file.OpenRead())
+
+            using (FileStream inFile = file.OpenRead())
             {
                 string curFile = file.FullName;
                 try
@@ -539,13 +548,13 @@ namespace PushingforImaging{
             //need to probably fix this really quick
 
             return "";
-            }
+        }
         //This method takes both compressed files hashes them and then compares them.
         //If they are an exact match in their hash code then its perfect and the transfer goes through (this method returns true)
         //If not the files are not transfered and the method returns false
         public static bool HashAndCompare(string sourcePath, string DestinationPath)
         {
-            using(var md5 = MD5.Create())
+            using (var md5 = MD5.Create())
             {
                 sourcePath.Replace(@"\", "");
                 try
@@ -571,9 +580,9 @@ namespace PushingforImaging{
                                 else if (Users.badFiles2.Count > 0)
                                 {
                                     Users.badFiles1.Add(new string[] { onePath, twoPath });
-                                   
+
                                 }
-                                    return false;
+                                return false;
                             }
 
                         }
@@ -610,7 +619,7 @@ namespace PushingforImaging{
                 try
                 {
                     DateTime temp = File.GetLastWriteTime(users[y] + @"\NTUSER.DAT");
-                    if (DateTime.Compare(DateTime.Now.AddMonths(USERKILLTIME), temp)<= 0 )
+                    if (DateTime.Compare(DateTime.Now.AddMonths(USERKILLTIME), temp) <= 0)
                     {
                         AcceptableUser.Add(users[y]);
                     }
@@ -622,7 +631,7 @@ namespace PushingforImaging{
             }
             AcceptableUser.Add("IS THE DEPOT PATH PRESS THIS NUMBER TO CHANGE IT---> " + DepotPath.depotPath);
             //will need an if statement here if there are no users that hit a certain time limit
-            while(chosen > AcceptableUser.Count || chosen < 1)
+            while (chosen > AcceptableUser.Count || chosen < 1)
             {
 
                 int pick = 0;
@@ -648,7 +657,7 @@ namespace PushingforImaging{
                     chosen = -1;
                 }
             }
-            return AcceptableUser[chosen-1];
+            return AcceptableUser[chosen - 1];
             //have users select what users they would like to add I'll need a hecka ton catch statements here
             //need to figure out return types here my god this is going to get crazy intense
         }
@@ -660,13 +669,12 @@ namespace PushingforImaging{
             string Timestamp = localT.ToString();
             //You replace these characters to prevent any errors\confusion in the directory pathing 
             Timestamp = Timestamp.Replace('/', '-').Replace(':', '.');
-            string DestinationPath = Users.depotPath +  @"\GoogleChromeData - " + Timestamp;
-      
+            string DestinationPath = Users.depotPath + @"\GoogleChromeData - " + Timestamp;
+
             if (Login(SourcePath) == true)
             {
-                    Console.WriteLine("Creating Folder: " + DestinationPath);
-                     System.IO.Directory.CreateDirectory(DestinationPath);
-                     TestingFolderCopy2(SourcePath, DestinationPath);
+                System.IO.Directory.CreateDirectory(DestinationPath);
+                TestingChromeCopy(SourcePath, DestinationPath);
             }
             else
                 Console.WriteLine("Cannot transfer chrome profile because the path " + SourcePath + " Does not exist");
@@ -684,27 +692,100 @@ namespace PushingforImaging{
                 DepotPath.depotPath = Console.ReadLine();
             }
             return;
-       
+
+        }
+
+
+        public static void TestingChromeCopy(string SourcePath, string DestinationPath)
+        {
+
+            files = DirSearchChrome(SourcePath);
+            foreach (string s in folderpavements)
+            {
+                Console.WriteLine(s);
+                FileAttributes attrib = File.GetAttributes(s);
+                if ((attrib & FileAttributes.Directory) == FileAttributes.Directory)
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(s.Replace(SourcePath, DestinationPath));
+                    }
+                    catch
+                    {
+                        //Needs an actual fix
+                        //Demlion seems like crap so I would not recommend it 
+                        Console.WriteLine("How did you even get a path that long?");
+                    }
+                }
+            }
+            foreach (string s in files)
+            {
+                try
+                {
+                    FileAttributes attrib = File.GetAttributes(s);
+                    if ((attrib & FileAttributes.Directory) != FileAttributes.Directory)
+                    {
+                        Console.WriteLine("Copying File" + s);
+                        Login(SourcePath);
+                        FileCompress(s, SourcePath, DestinationPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (ex is IOException)
+                    {
+                        Users.badFiles1.Add(new string[] { SourcePath, DestinationPath });
+                    }
+                    Debug.Write(ex);
+                }
+            }
+        }
+        static List<string> DirSearchChrome(string sDir)
+        {
+            try
+            {
+                foreach (string f in Directory.GetFiles(sDir))
+                {
+                    string d = sDir;
+                    FileAttributes attrib = File.GetAttributes(d);
+                    if ((attrib & FileAttributes.Directory) == FileAttributes.Directory)
+                    {
+                        folderpavements.Add(d);
+                    }
+                    //might need to switch this to the above part here
+
+                    files.Add(f);
+                }
+                foreach (string d in Directory.GetDirectories(sDir))
+                {
+                    DirSearchChrome(d);
+                }
+            }
+            catch (System.Exception excpt)
+            {
+                Console.WriteLine("except Message:" + excpt.Message);
+            }
+            return files;
         }
 
         //This function takes all printer names in the network and finds the default printer
+        //then it creates a text file with the default printer as its name
         public static void GetPrinterNames(string path)
         {
             string DefPrinter = "";
-             comboInstalledPrinters.Dock = DockStyle.Top;
+            comboInstalledPrinters.Dock = DockStyle.Top;
             string PrintertxtContents = "";
             string pkInstalledPrinters;
 
             foreach (string printer in System.Drawing.Printing.PrinterSettings.InstalledPrinters)
             {
-                Console.WriteLine(printer);
                 PrintertxtContents = PrintertxtContents + printer + "\n               ";
                 pkInstalledPrinters = printer;
                 comboInstalledPrinters.Items.Add(pkInstalledPrinters);
                 if (printDoc.PrinterSettings.IsDefaultPrinter)
                 {
-                   DefPrinter = printDoc.PrinterSettings.PrinterName;
-                   DefPrinter = Path.GetFileName(DefPrinter);
+                    DefPrinter = printDoc.PrinterSettings.PrinterName;
+                    DefPrinter = Path.GetFileName(DefPrinter);
                 }
 
             }
@@ -714,5 +795,35 @@ namespace PushingforImaging{
             }
         }
 
+        public static void TransferDataDocuments()
+        {
+            string xx = cmpnm + @"\Data";
+            string x = firstpath + @"\DataOrPlantDrive";
+
+
+            try
+            {
+                if (Directory.GetFiles(xx).Length != 0)
+                {
+                    System.IO.Directory.CreateDirectory(x);
+                    TestingFolderCopy2(xx, x);
+                    folderpavements.Clear();
+                    files.Clear();
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Console.WriteLine("Your Access was denied");
+                Menu();
+            }
+
+        }
+
+        //https://stackoverflow.com/questions/755574/how-to-quickly-check-if-folder-is-empty-net
+        //returns false is there is no documents in the folder
+        public static bool IsDirectoryEmpty(string path)
+        {
+            return !Directory.EnumerateFileSystemEntries(path).Any();
+        }
     }
 }
