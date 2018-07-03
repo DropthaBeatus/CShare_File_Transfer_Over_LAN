@@ -11,7 +11,7 @@ namespace PushingforImaging
         public string username;
         public string Path;
         //public List<string> foldernames = new List<string>();
-        public string[] foldernames = new string[4];
+        public string[] foldernames = new string[5];
         public bool[] filesInIt = new bool[3];
         // DateTime createTime;
         List<string> filenames = new List<string>();
@@ -19,7 +19,7 @@ namespace PushingforImaging
         public List<string[]> badFiles1 = new List<string[]>();
         public List<string[]> badFiles2 = new List<string[]>();
       
-        public FilePaths(string name , string fullname, string path):base(path)
+        public FilePaths(string name , string fullname, string path, string cmpnm):base(path)
         {
             Path = path;
             username = name;
@@ -32,6 +32,7 @@ namespace PushingforImaging
             foldernames[2] = (Name + @"\Documents");
             foldernames[1] = (Name + @"\Desktop");
             foldernames[3] = (Name + @"\AppData\Local\Google\Chrome\User Data\Default");
+            foldernames[4] = (cmpnm + @"\Data");
             //find file path for google chrome favorites
         }
 

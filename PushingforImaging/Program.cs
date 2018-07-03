@@ -75,7 +75,7 @@ namespace PushingforImaging
 
         public static void Menu()
         {
-            bool TransferfromData = false;
+            string TransferfromData = "";
             Console.WriteLine("Enter name of the computer");
             cmpnm = @"\\" + Console.ReadLine() + @"\c$";
             while (Login(cmpnm) == false)
@@ -86,24 +86,22 @@ namespace PushingforImaging
             //firstpath is just \\ComputerName\c$\Users 
             firstpath = GetUsernames(cmpnm + @"\Users");
             username = Path.GetFileName(firstpath);
-            Users = new FilePaths(username, firstpath, DepotPath.depotPath);
+            Users = new FilePaths(username, firstpath, DepotPath.depotPath, cmpnm);
             while (Login(firstpath) == false)
             {
                 Console.WriteLine("Enter name of the computer");
                 cmpnm = @"\\" + Console.ReadLine() + @"\c$";
                 firstpath = GetUsernames(cmpnm + @"\Users");
-                Users = new FilePaths(username, firstpath, DepotPath.depotPath);
+                Users = new FilePaths(username, firstpath, DepotPath.depotPath, cmpnm);
             }
             CreateDir();
             CheckChrome();
             if (IsDirectoryEmpty(cmpnm + @"\Data") != true)
             {
-                Console.WriteLine(@"\Data folders Contains files. Transfer files and folders? Hit 1 for yes");
-                if (Console.ReadLine() == "1")
-                {
-                    TransferfromData = true;
-                }
-                if (TransferfromData == true)
+                Console.WriteLine(TransferfromData);
+                Console.WriteLine(@"Data folders Contains files. Transfer files and folders? Hit 1 for yes");
+                TransferfromData = Console.ReadLine();
+                if (TransferfromData == "1")
                 {
                     TransferDataDocuments();
                 }
@@ -381,9 +379,13 @@ namespace PushingforImaging
                         folderpavements.Add(d);
                     }
                     //might need to switch this to the above part here
-                    if (FileFilter(f) == true && GetFileSize(f) == true)
+                    if (f.Contains(@"https://"))
                     {
-                        if (TimePurge(f) == true && !f.Contains(@"\AppData\Local\Google\Chrome\User Data\Default"))
+                        files.Add(f);
+                    }
+                    else if (FileFilter(f) == true && GetFileSize(f) == true)
+                    {
+                        if (TimePurge(f) == true)
                             files.Add(f);
                     }
                 }
@@ -445,6 +447,10 @@ namespace PushingforImaging
             if (fileP.Contains(@"\AppData\Local\Google\Chrome\User Data\Default"))
             {
                 count = 3;
+            }
+            if (fileP.Contains(@"\Data"))
+            {
+                count = 4;
             }
             //compressing an already compressed file causes an error
             if (!fileP.Contains(".gz"))
@@ -725,9 +731,12 @@ namespace PushingforImaging
                     FileAttributes attrib = File.GetAttributes(s);
                     if ((attrib & FileAttributes.Directory) != FileAttributes.Directory)
                     {
-                        Console.WriteLine("Copying File" + s);
-                        Login(SourcePath);
-                        FileCompress(s, SourcePath, DestinationPath);
+                        if (!s.Contains(".tmp"))
+                        {
+                            Console.WriteLine("Copying File" + s);
+                            Login(SourcePath);
+                            FileCompress(s, SourcePath, DestinationPath);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -798,12 +807,11 @@ namespace PushingforImaging
         public static void TransferDataDocuments()
         {
             string xx = cmpnm + @"\Data";
-            string x = firstpath + @"\DataOrPlantDrive";
-
+            string x = Users.depotPath + @"\DataOrPlantDrive";
 
             try
             {
-                if (Directory.GetFiles(xx).Length != 0)
+                if (IsDirectoryEmpty(xx) != true)
                 {
                     System.IO.Directory.CreateDirectory(x);
                     TestingFolderCopy2(xx, x);
